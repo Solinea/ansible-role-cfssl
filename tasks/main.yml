@@ -1,0 +1,32 @@
+- name: Install pre-reqs
+  package:
+    name: "{{item}}"
+    state: present
+  with_items:
+    - git
+    - gcc
+
+- name: stat go
+  stat:
+    path: /usr/local/go/bin/cfssl
+  register: cfssl
+
+- name: Get cfssl via go command
+  command: /usr/local/go/bin/go get -u github.com/cloudflare/cfssl/cmd/...
+  environment:
+    GOPATH: /tmp/go
+  when: not cfssl.stat.exists
+
+- name: ls
+  command: ls /tmp/go/bin
+  register: ls_out
+  when: not cfssl.stat.exists
+
+- name: copy files
+  copy:
+    src: "/tmp/go/bin/{{item}}"
+    dest: "/usr/local/go/bin"
+    remote_src: true
+  with_items:
+    - "{{ ls_out.stdout_lines }}"
+  when: not cfssl.stat.exists
